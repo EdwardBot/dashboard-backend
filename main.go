@@ -1,12 +1,15 @@
 package main
 
 import (
+	"fmt"
+	"github.com/edward-backend/controllers"
+	"github.com/edward-backend/database"
+	"github.com/gin-contrib/multitemplate"
+	"github.com/joho/godotenv"
 	"log"
 	"net/http"
 	"os"
 	"time"
-
-	"github.com/edward-backend/controllers"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -17,12 +20,25 @@ var (
 	s *gocron.Scheduler
 )
 
+func createMyRender() multitemplate.Renderer {
+	r := multitemplate.NewRenderer()
+	r.AddFromFiles("redirect", "templates/oauth.html")
+	return r
+}
+
 func main() {
 	log.Println(`Starting...`)
+	godotenv.Load()
 	s = gocron.NewScheduler(time.UTC)
-	r := gin.Default()
+	router := gin.Default()
+	err := database.Connect()
+	if err != nil {
+		panic(fmt.Sprintf("Error: %s", err.Error()))
+	}
 
-	r.Use(cors.New(cors.Config{
+	router.HTMLRender = createMyRender()
+
+	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"*"},
 		AllowHeaders:     []string{"*"},
@@ -34,25 +50,20 @@ func main() {
 		MaxAge: 12 * time.Hour,
 	}))
 
+	r := router.Group("/v1")
+
 	r.GET("/ping", func(c *gin.Context) {
 		c.String(http.StatusOK, "pong")
 	})
 
-	r.NoRoute(func(c *gin.Context) {
+	router.NoRoute(func(c *gin.Context) {
 		c.JSON(404, map[string]interface{}{
 			"status": "error",
 			"error":  "Route not found!",
 		})
 	})
 
-	r.GET("/auth/login", controllers.HandleLogin)
+	controllers.InitAuth(r.Group("/auth"))
 
-	if os.Getenv("PORT") != "" {
-		gin.SetMode(gin.ReleaseMode)
-		r.Run(":" + os.Getenv("PORT"))
-		return
-	} else {
-		gin.SetMode(gin.ReleaseMode)
-		r.Run(":3000")
-	}
+	router.Run(":" + os.Getenv("PORT"))
 }
