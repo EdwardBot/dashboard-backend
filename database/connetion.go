@@ -15,8 +15,9 @@ var clientInstanceError error
 var mongoOnce sync.Once
 
 const (
-	DB    = "edward"
-	USERS = "users"
+	DB       = "edward"
+	USERS    = "users"
+	SESSIONS = "sessions"
 )
 
 func Connect() error {
@@ -41,4 +42,8 @@ func GetInstance() *mongo.Client {
 
 func GetUsers() *mongo.Collection {
 	return GetInstance().Database(DB).Collection(USERS)
+}
+
+func GetSessions() *mongo.Collection {
+	return GetInstance().Database(DB).Collection(SESSIONS)
 }

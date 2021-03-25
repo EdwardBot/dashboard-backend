@@ -3,9 +3,12 @@ package auth
 import (
 	"encoding/json"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/edward-backend/database"
+	"github.com/edward-backend/utils"
 	"github.com/gin-gonic/gin"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
@@ -45,18 +48,10 @@ func HandleOAuth(c *gin.Context) {
 			log.Fatal(err)
 		}
 
-		body, err := ioutil.ReadAll(res.Body)
+		body, _ := ioutil.ReadAll(res.Body)
 
-		if err != nil {
-			c.JSON(401, gin.H{
-				"status":  "Error",
-				"error":   "API error!",
-				"details": err,
-			})
-			return
-		}
-		var response map[string]string
-		json.Unmarshal(body, &response)
+		var response gin.H
+		_ = json.Unmarshal(body, &response)
 		if response["error_description"] == "Invalid \"code\" in request." {
 			c.JSON(403, gin.H{
 				"status": "error",
@@ -65,21 +60,28 @@ func HandleOAuth(c *gin.Context) {
 			return
 		}
 
-		req, _ := http.NewRequest("GET", "https://discord.com/api/v6/users/@me", strings.NewReader(""))
+		userData, _ := utils.HttpGet("https://discord.com/api/v6/users/@me", map[string]string{
+			"Authorization": "Bearer " + response["access_token"].(string),
+		})
 
-		req.Header.Add("Authorization", "Bearer "+response["access_token"])
+		sessionCode := rand.Int63()
 
-		res, _ = client.Do(req)
-		body, _ = ioutil.ReadAll(res.Body)
-		var userData map[string]string
-		json.Unmarshal(body, &userData)
-		log.Println(string(body))
+		user, err := database.FindUser(userData["id"].(string))
+		//if err != nil {
+		//	go HandleSession(user, response, sessionCode)
+		//} else {
+		go func(userData gin.H, oauth gin.H, session int64) {
+			HandleInitialLogin(userData, oauth)
+			HandleSession(user, response, sessionCode)
+		}(userData, response, sessionCode)
+		//}
 
 		token := jwt.New(jwt.GetSigningMethod("HS256"))
 
 		token.Claims = jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(time.Hour * 3).Unix(),
-			Subject:   userData["id"],
+			Subject:   userData["id"].(string),
+			Id:        strconv.FormatInt(sessionCode, 10),
 		}
 
 		tokenStr, err := token.SignedString([]byte(os.Getenv("TOKEN_SECRET")))
@@ -115,4 +117,32 @@ func HandleOAuth(c *gin.Context) {
 			"error":  "No code sent!",
 		})
 	}
+}
+
+func HandleSession(userId database.User, oauthRes gin.H, code int64) {
+
+}
+
+func HandleInitialLogin(userData gin.H, response gin.H) {
+	userId, _ := strconv.ParseInt(userData["id"].(string), 10, 64)
+	discriminator, _ := strconv.Atoi(userData["discriminator"].(string))
+
+	guildData, err := utils.HttpGet("https://discord.com/api/v6/users/@me/guilds", map[string]string{
+		"Authorization": "Bearer " + response["access_token"].(string),
+	})
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+	}
+
+	log.Printf("Guilds: %p", guildData)
+
+	userDb := database.User{
+		UserID:        userId,
+		JoinedAt:      time.Now(),
+		UserName:      userData["username"].(string),
+		Discriminator: discriminator,
+		AvatarID:      userData["avatar"].(string),
+	}
+
+	userDb.Save()
 }
