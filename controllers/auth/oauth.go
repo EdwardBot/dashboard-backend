@@ -62,19 +62,20 @@ func HandleOAuth(c *gin.Context) {
 
 		userData, _ := utils.HttpGet("https://discord.com/api/v6/users/@me", map[string]string{
 			"Authorization": "Bearer " + response["access_token"].(string),
-		})
+		}, false)
 
 		sessionCode := rand.Int63()
 
 		user, err := database.FindUser(userData["id"].(string))
-		//if err != nil {
-		//	go HandleSession(user, response, sessionCode)
-		//} else {
-		go func(userData gin.H, oauth gin.H, session int64) {
-			HandleInitialLogin(userData, oauth)
-			HandleSession(user, response, sessionCode)
-		}(userData, response, sessionCode)
-		//}
+		log.Println(err)
+		if err == nil {
+			go HandleSession(user, response, sessionCode)
+		} else {
+			go func(userData gin.H, oauth gin.H, session int64) {
+				HandleInitialLogin(userData, oauth)
+				HandleSession(user, response, sessionCode)
+			}(userData, response, sessionCode)
+		}
 
 		token := jwt.New(jwt.GetSigningMethod("HS256"))
 
@@ -129,12 +130,12 @@ func HandleInitialLogin(userData gin.H, response gin.H) {
 
 	guildData, err := utils.HttpGet("https://discord.com/api/v6/users/@me/guilds", map[string]string{
 		"Authorization": "Bearer " + response["access_token"].(string),
-	})
+	}, true)
 	if err != nil {
 		log.Printf("Error: %s", err.Error())
 	}
 
-	log.Printf("Guilds: %p", guildData)
+	log.Printf("Guilds: %s", guildData)
 
 	userDb := database.User{
 		UserID:        userId,

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/edward-backend/controllers"
 	"github.com/edward-backend/database"
-	"github.com/edward-backend/utils"
 	"github.com/gin-contrib/multitemplate"
 	"github.com/joho/godotenv"
 	"log"
@@ -36,7 +35,6 @@ func main() {
 	if err != nil {
 		panic(fmt.Sprintf("Error: %s", err.Error()))
 	}
-	utils.InitHttp()
 
 	router.HTMLRender = createMyRender()
 
