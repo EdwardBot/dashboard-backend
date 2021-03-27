@@ -36,6 +36,8 @@ func main() {
 		panic(fmt.Sprintf("Error: %s", err.Error()))
 	}
 
+	database.Init()
+
 	router.HTMLRender = createMyRender()
 
 	router.Use(cors.New(cors.Config{

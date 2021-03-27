@@ -6,6 +6,7 @@ import (
 	"github.com/edward-backend/database"
 	"github.com/edward-backend/utils"
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -21,7 +22,6 @@ import (
 func HandleOAuth(c *gin.Context) {
 	authCode, hasCode := c.GetQuery("code")
 	if hasCode && authCode != "" {
-		client := http.Client{}
 		tokenRequest := url.Values{}
 		tokenRequest.Set("client_id", os.Getenv("CLIENT_ID"))
 		tokenRequest.Set("client_secret", os.Getenv("CLIENT_SECRET"))
@@ -43,7 +43,7 @@ func HandleOAuth(c *gin.Context) {
 			return
 		}
 
-		res, erro := client.Do(request)
+		res, erro := utils.Client.Do(request)
 		if erro != nil {
 			log.Fatal(err)
 		}
@@ -64,25 +64,24 @@ func HandleOAuth(c *gin.Context) {
 			"Authorization": "Bearer " + response["access_token"].(string),
 		}, false)
 
-		sessionCode := rand.Int63()
+		sessionCode := rand.Int31()
 
-		user, err := database.FindUser(userData["id"].(string))
+		userID, _ := strconv.ParseInt(userData["id"].(string), 10, 64)
+
+		user, err := database.FindUser(userID)
 		log.Println(err)
-		if err == nil {
-			go HandleSession(user, response, sessionCode)
-		} else {
-			go func(userData gin.H, oauth gin.H, session int64) {
-				HandleInitialLogin(userData, oauth)
-				HandleSession(user, response, sessionCode)
-			}(userData, response, sessionCode)
+		if err != nil {
+			go HandleInitialLogin(userData, response)
 		}
+
+		session, err := HandleSession(user, response, sessionCode)
 
 		token := jwt.New(jwt.GetSigningMethod("HS256"))
 
 		token.Claims = jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Hour * 3).Unix(),
+			ExpiresAt: time.Now().Add(time.Second * 603000).Unix(),
 			Subject:   userData["id"].(string),
-			Id:        strconv.FormatInt(sessionCode, 10),
+			Id:        strconv.Itoa(int(session.SessionId)),
 		}
 
 		tokenStr, err := token.SignedString([]byte(os.Getenv("TOKEN_SECRET")))
@@ -101,9 +100,12 @@ func HandleOAuth(c *gin.Context) {
 		}
 
 		r := gin.H{
-			"status": "success",
-			"token":  tokenStr,
-			"id":     userData["id"],
+			"status":        "success",
+			"token":         tokenStr,
+			"id":            userData["id"],
+			"username":      userData["username"],
+			"discriminator": userData["discriminator"],
+			"session_id":    session.SessionId,
 		}
 
 		b, _ := json.Marshal(r)
@@ -120,13 +122,27 @@ func HandleOAuth(c *gin.Context) {
 	}
 }
 
-func HandleSession(userId database.User, oauthRes gin.H, code int64) {
-
+func HandleSession(user database.User, oauthRes gin.H, code int32) (database.Session, error) {
+	_, err := database.FindSession(code)
+	if err == nil {
+		log.Println(err)
+	}
+	session := database.Session{
+		ID:           primitive.NewObjectID(),
+		UserID:       user.UserID,
+		AccessToken:  oauthRes["access_token"].(string),
+		RefreshToken: oauthRes["refresh_token"].(string),
+		RefreshedAt:  time.Now(),
+		ExpiresIn:    604000,
+		SessionId:    code,
+	}
+	err = session.Save()
+	return session, err
 }
 
 func HandleInitialLogin(userData gin.H, response gin.H) {
 	userId, _ := strconv.ParseInt(userData["id"].(string), 10, 64)
-	discriminator, _ := strconv.Atoi(userData["discriminator"].(string))
+	discriminator, _ := userData["discriminator"].(string)
 
 	guildData, err := utils.HttpGet("https://discord.com/api/v6/users/@me/guilds", map[string]string{
 		"Authorization": "Bearer " + response["access_token"].(string),
@@ -135,15 +151,53 @@ func HandleInitialLogin(userData gin.H, response gin.H) {
 		log.Printf("Error: %s", err.Error())
 	}
 
-	log.Printf("Guilds: %s", guildData)
+	guilds := guildData["guilds"].([]interface{})
+
+	guildIDs := make([]int64, 0, 100)
+
+	log.Printf("Caching guilds for user \"%s\"", userData["username"].(string))
+	for g := range guilds {
+		guild := guilds[g].(map[string]interface{})
+		dId, _ := strconv.ParseInt(guild["id"].(string), 10, 64)
+		var icon string
+		if guild["icon"] == nil {
+			icon = "default"
+		} else {
+			icon = guild["icon"].(string)
+		}
+		_, hasBot := database.FindGConf(guild["id"].(string))
+		toSave := database.Guild{
+			GuildID:    dId,
+			Name:       guild["name"].(string),
+			Icon:       icon,
+			HasBot:     hasBot == nil,
+			OwnerId:    -1,
+			HasPremium: false,
+			ID:         primitive.NewObjectID(),
+		}
+		tryCacheGuild(toSave)
+		guildIDs = append(guildIDs, dId)
+	}
+	log.Printf("Caching guilds done for user \"%s\"", userData["username"].(string))
 
 	userDb := database.User{
+		ID:            primitive.NewObjectID(),
 		UserID:        userId,
 		JoinedAt:      time.Now(),
 		UserName:      userData["username"].(string),
 		Discriminator: discriminator,
 		AvatarID:      userData["avatar"].(string),
+		Guilds:        guildIDs,
 	}
 
 	userDb.Save()
+}
+
+func tryCacheGuild(guild database.Guild) {
+	g, err := database.FindGuild(guild.GuildID)
+	if err != nil {
+		guild.Save()
+	} else {
+		guild.Update(g.ID)
+	}
 }

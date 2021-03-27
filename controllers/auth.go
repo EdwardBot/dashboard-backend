@@ -6,7 +6,7 @@ import (
 )
 
 func InitAuth(router *gin.RouterGroup) {
-	router.GET("/oauth", auth.HandleOAuth)
-	router.GET("/refresh", auth.HandleRefresh)
 	router.GET("/login", auth.HandleLogin)
+	router.GET("/oauth", auth.HandleOAuth)
+	router.Use(auth.HasAuth).POST(`/refresh`, auth.HandleRefresh)
 }

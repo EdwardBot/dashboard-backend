@@ -3,13 +3,12 @@ package utils
 import (
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strings"
 )
 
 var (
-	client = http.Client{}
+	Client = http.Client{}
 )
 
 func HttpGet(url string, headers map[string]string, isArr bool) (map[string]interface{}, error) {
@@ -17,7 +16,7 @@ func HttpGet(url string, headers map[string]string, isArr bool) (map[string]inte
 	for k, e := range headers {
 		req.Header.Add(k, e)
 	}
-	res, err := client.Do(req)
+	res, err := Client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +29,6 @@ func HttpGet(url string, headers map[string]string, isArr bool) (map[string]inte
 	} else {
 		tmp = append(tmp, body...)
 	}
-	log.Println("{\"guilds\":" + string(body) + "}")
 
 	var data map[string]interface{}
 	err = json.Unmarshal(tmp, &data)
