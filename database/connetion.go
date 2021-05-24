@@ -26,6 +26,8 @@ const (
 func Connect() error {
 	clientOptions := options.Client().ApplyURI(os.Getenv("MONGO_URI") + "/" + DB)
 
+	log.Println(clientOptions)
+	
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 	if err != nil {
 		log.Fatalf("Error connecting to the database!\n%s", err.Error())
