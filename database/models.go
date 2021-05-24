@@ -5,6 +5,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"log"
 	"strconv"
 	"time"
 )
@@ -14,6 +15,7 @@ var (
 	sessionCollection *mongo.Collection
 	guildCollection   *mongo.Collection
 	gConfCollection   *mongo.Collection
+	walletCollection  *mongo.Collection
 )
 
 func Init() {
@@ -21,6 +23,7 @@ func Init() {
 	sessionCollection = GetSessions()
 	guildCollection = GetGuilds()
 	gConfCollection = GetGuildConfigs()
+	walletCollection = GetWalletCollection()
 }
 
 type User struct {
@@ -31,6 +34,7 @@ type User struct {
 	Discriminator string             `bson:"discriminator"`
 	AvatarID      string             `bson:"avatar"`
 	Guilds        []int64            `bson:"guilds"`
+	PremiumType   int                `bson:"premium_type"`
 }
 
 type Session struct {
@@ -46,7 +50,7 @@ type Session struct {
 type Guild struct {
 	ID         primitive.ObjectID `bson:"_id"`
 	GuildID    int64              `bson:"guild_id"`
-	GID 	   string             `bson:"gid"`
+	GID        string             `bson:"gid"`
 	Name       string             `bson:"name"`
 	Icon       string             `bson:"icon"`
 	HasBot     bool               `bson:"has_bot"`
@@ -63,6 +67,18 @@ type GuildConfig struct {
 	JoinedAt     int64              `bson:"joinedAt"`
 }
 
+type Wallet struct {
+	ID       primitive.ObjectID `bson:"_id"`
+	GuildId  string             `bson:"guildId"`
+	UserId   string             `bson:"userId"`
+	GID      string
+	UID      string
+	Balance  int32 `bson:"balance"`
+	Xp       int32 `bson:"xp"`
+	Lvl      int32 `bson:"lvl"`
+	Messages int32 `bson:"messages"`
+}
+
 func FindUser(id int64) (User, error) {
 	var result User
 	err := userCollection.FindOne(context.TODO(), bson.D{
@@ -75,6 +91,24 @@ func FindUser(id int64) (User, error) {
 		return User{}, err
 	}
 	return result, nil
+}
+
+func FindWallet(userId, guildId string) *Wallet {
+	var wallet Wallet
+	e := walletCollection.FindOne(context.TODO(), bson.D{
+		primitive.E{
+			Key:   "guildId",
+			Value: guildId,
+		},
+		primitive.E{
+			Key:   "userId",
+			Value: userId,
+		},
+	}).Decode(&wallet)
+	if e != nil {
+		log.Println(e.Error())
+	}
+	return &wallet
 }
 
 func FindSession(id int32) (Session, error) {
@@ -112,7 +146,7 @@ func FindGuilds(userId int64) ([]Guild, error) {
 
 	for i, guild := range user.Guilds {
 		g, _ := FindGuild(guild)
-		g.GID  = strconv.FormatInt(g.GuildID, 10)
+		g.GID = strconv.FormatInt(g.GuildID, 10)
 		guilds[i] = g
 	}
 	return guilds, nil
@@ -157,6 +191,14 @@ func (g *Guild) Update(id primitive.ObjectID) error {
 		Key:   "_id",
 		Value: id,
 	}, *g)
+	return err
+}
+
+func (u *User) Update(id primitive.ObjectID) error {
+	_, err := userCollection.UpdateOne(context.TODO(), primitive.E{
+		Key:   "_id",
+		Value: id,
+	}, *u)
 	return err
 }
 

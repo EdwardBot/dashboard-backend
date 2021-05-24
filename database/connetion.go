@@ -16,15 +16,18 @@ var clientInstanceError error
 var mongoOnce sync.Once
 
 const (
-	DB           = "edward"
-	USERS        = "users"
-	SESSIONS     = "sessions"
-	GUILDS       = "guilds"
-	GuildConfigs = "guild-configs"
+	DB            = "edward"
+	USERS         = "users"
+	SESSIONS      = "sessions"
+	GUILDS        = "guilds"
+	GUILD_CONFIGS = "guild-configs"
+	WALLETS       = "wallets"
 )
 
 func Connect() error {
-	clientOptions := options.Client().ApplyURI(os.Getenv("MONGO_URI") + "/" + DB)
+	clientOptions := options.Client().ApplyURI(os.Getenv("MONGO_URI") + "/")
+
+	log.Println(clientOptions)
 
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 	if err != nil {
@@ -56,5 +59,9 @@ func GetGuilds() *mongo.Collection {
 }
 
 func GetGuildConfigs() *mongo.Collection {
-	return GetInstance().Database(DB).Collection(GuildConfigs)
+	return GetInstance().Database(DB).Collection(GUILD_CONFIGS)
+}
+
+func GetWalletCollection() *mongo.Collection {
+	return GetInstance().Database(DB).Collection(WALLETS)
 }

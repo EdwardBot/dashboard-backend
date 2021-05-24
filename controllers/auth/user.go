@@ -19,14 +19,11 @@ func HandleUserInfo(c *gin.Context) {
 	uId, _ := strconv.ParseInt(uIdS.(string), 10, 64)
 	user, e := database.FindUser(uId)
 	if e != nil {
-		c.JSON(404, gin.H {
+		c.JSON(404, gin.H{
 			"status": "error",
-			"error": "no user found",
+			"error":  "no user found",
 		})
 		return
 	}
-	c.JSON(200, gin.H {
-		"username": user.UserName,
-		"discriminator": user.Discriminator,
-	})
+	c.JSON(200, user)
 }

@@ -52,7 +52,7 @@ func HandleOAuth(c *gin.Context) {
 
 		var response gin.H
 		_ = json.Unmarshal(body, &response)
-		if response["error_description"] == "Invalid \"code\" in request." {
+		if response["error"] != nil {
 			c.JSON(403, gin.H{
 				"status": "error",
 				"error":  "Code expired.",
@@ -69,10 +69,13 @@ func HandleOAuth(c *gin.Context) {
 		userID, _ := strconv.ParseInt(userData["id"].(string), 10, 64)
 
 		user, err := database.FindUser(userID)
-		log.Println(err)
+		go CacheGuilds(userData, response)
 		if err != nil {
 			go HandleInitialLogin(userData, response)
 		}
+
+		user.PremiumType = userData["premium_type"].(int)
+		user.Update(user.ID)
 
 		session, err := HandleSession(user, response, sessionCode)
 
@@ -193,6 +196,10 @@ func HandleInitialLogin(userData gin.H, response gin.H) {
 	}
 
 	userDb.Save()
+}
+
+func CacheGuilds(userData, response gin.H) {
+
 }
 
 func tryCacheGuild(guild database.Guild) {
