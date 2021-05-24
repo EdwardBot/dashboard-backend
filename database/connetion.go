@@ -24,7 +24,7 @@ const (
 )
 
 func Connect() error {
-	clientOptions := options.Client().ApplyURI(os.Getenv("MONGO_URI") + "/" + DB)
+	clientOptions := options.Client().ApplyURI(os.Getenv("MONGO_URI") + "/" + DB + "?ssl=false")
 
 	log.Println(clientOptions)
 	
