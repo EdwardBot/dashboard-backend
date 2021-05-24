@@ -4,7 +4,6 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/edward-backend/database"
 	"github.com/gin-gonic/gin"
-	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -27,15 +26,17 @@ func HasAuth(c *gin.Context) {
 			"status": "error",
 			"error":  "Internal error",
 		})
+		return
 	}
 	if !jwtToken.Valid {
 		c.JSON(401, gin.H{
 			"status": "error",
 			"error":  "Invalid token",
 		})
+		return
 	}
 	tokenData := jwtToken.Claims.(jwt.MapClaims)
-	log.Println(tokenData)
+
 	exp := tokenData["exp"].(float64)
 	now, _ := strconv.ParseFloat(strconv.FormatInt(time.Now().Unix(), 10), 64)
 	if exp < now {
@@ -43,6 +44,7 @@ func HasAuth(c *gin.Context) {
 			"status": "error",
 			"error":  "Expired token",
 		})
+		return
 	}
 	sessionId, _ := strconv.ParseInt(tokenData["jti"].(string), 10, 32)
 	session, err := database.FindSession(int32(sessionId))
@@ -51,6 +53,7 @@ func HasAuth(c *gin.Context) {
 			"status": "error",
 			"error":  "Invalid session",
 		})
+		return
 	}
 	userId, _ := strconv.ParseInt(tokenData["sub"].(string), 10, 64)
 	if userId != session.UserID {
@@ -58,5 +61,7 @@ func HasAuth(c *gin.Context) {
 			"status": "error",
 			"error":  "Invalid token",
 		})
+		return
 	}
+	c.Request.Header.Set("uid", tokenData["sub"].(string))
 }

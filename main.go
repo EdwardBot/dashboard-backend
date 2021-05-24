@@ -28,7 +28,9 @@ func createMyRender() multitemplate.Renderer {
 
 func main() {
 	log.Println(`Starting...`)
-	godotenv.Load()
+	if os.Getenv("PROD") == "" {
+		godotenv.Load()
+	}
 	s = gocron.NewScheduler(time.UTC)
 	router := gin.Default()
 	err := database.Connect()
@@ -66,6 +68,7 @@ func main() {
 	})
 
 	controllers.InitAuth(r.Group("/auth"))
+	controllers.InitGuilds(r.Group("/guild"))
 
 	router.Run(":" + os.Getenv("PORT"))
 }

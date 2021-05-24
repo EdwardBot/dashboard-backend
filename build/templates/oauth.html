@@ -1,0 +1,14 @@
+<html>
+<head>
+    <title>Átirányítás...</title>
+</head>
+<body>
+<p id="d" style="display: none">d{{.data}}</p>
+<script>
+    window.opener.postMessage(document.getElementById("d").innerText, "*");
+    setTimeout(() => {
+        window.close()
+    }, 500)
+</script>
+</body>
+</html>

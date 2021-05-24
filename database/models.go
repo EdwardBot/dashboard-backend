@@ -5,6 +5,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"strconv"
 	"time"
 )
 
@@ -45,6 +46,7 @@ type Session struct {
 type Guild struct {
 	ID         primitive.ObjectID `bson:"_id"`
 	GuildID    int64              `bson:"guild_id"`
+	GID 	   string             `bson:"gid"`
 	Name       string             `bson:"name"`
 	Icon       string             `bson:"icon"`
 	HasBot     bool               `bson:"has_bot"`
@@ -101,6 +103,19 @@ func FindGuild(id int64) (Guild, error) {
 		return Guild{}, err
 	}
 	return result, nil
+}
+
+func FindGuilds(userId int64) ([]Guild, error) {
+	user, _ := FindUser(userId)
+
+	guilds := make([]Guild, len(user.Guilds))
+
+	for i, guild := range user.Guilds {
+		g, _ := FindGuild(guild)
+		g.GID  = strconv.FormatInt(g.GuildID, 10)
+		guilds[i] = g
+	}
+	return guilds, nil
 }
 
 func FindGConf(id string) (GuildConfig, error) {

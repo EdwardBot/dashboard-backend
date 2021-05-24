@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-//HandleLogin handles the Oauth2 login process
+// HandleOAuth HandleLogin handles the Oauth2 login process
 func HandleOAuth(c *gin.Context) {
 	authCode, hasCode := c.GetQuery("code")
 	if hasCode && authCode != "" {
@@ -166,17 +166,19 @@ func HandleInitialLogin(userData gin.H, response gin.H) {
 			icon = guild["icon"].(string)
 		}
 		_, hasBot := database.FindGConf(guild["id"].(string))
-		toSave := database.Guild{
-			GuildID:    dId,
-			Name:       guild["name"].(string),
-			Icon:       icon,
-			HasBot:     hasBot == nil,
-			OwnerId:    -1,
-			HasPremium: false,
-			ID:         primitive.NewObjectID(),
+		if hasBot == nil {
+			toSave := database.Guild{
+				GuildID:    dId,
+				Name:       guild["name"].(string),
+				Icon:       icon,
+				HasBot:     hasBot == nil,
+				OwnerId:    -1,
+				HasPremium: false,
+				ID:         primitive.NewObjectID(),
+			}
+			tryCacheGuild(toSave)
+			guildIDs = append(guildIDs, dId)
 		}
-		tryCacheGuild(toSave)
-		guildIDs = append(guildIDs, dId)
 	}
 	log.Printf("Caching guilds done for user \"%s\"", userData["username"].(string))
 

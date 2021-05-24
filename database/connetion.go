@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"log"
 	"os"
 	"sync"
 
@@ -27,7 +28,7 @@ func Connect() error {
 
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 	if err != nil {
-		clientInstanceError = err
+		log.Fatalf("Error connecting to the database!\n%s", err.Error())
 	}
 
 	err = client.Ping(context.TODO(), nil)
