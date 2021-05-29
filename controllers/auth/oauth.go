@@ -77,7 +77,7 @@ func HandleOAuth(c *gin.Context) {
 		if userData["premium_type"] == nil {
 			log.Printf("Premium: %s", userData)
 		} else {
-			user.PremiumType = userData["premium_type"].(int)
+			user.PremiumType = int(userData["premium_type"].(float64))
 			user.Update(user.ID)
 		}
 
