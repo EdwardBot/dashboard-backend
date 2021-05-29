@@ -2,14 +2,15 @@ package guild
 
 import (
 	"github.com/edward-backend/database"
-	"github.com/edward-backend/utils"
 	"github.com/gin-gonic/gin"
 )
 
 func HandleGetGuildConfig(ctx *gin.Context) {
+	if !ctx.MustGet("hasAuth").(bool) {
+		return
+	}
 	conf, err := database.FindGConf(ctx.Param("id"))
-	tokenData := utils.ParseToken(ctx)
-	wallet := database.FindWallet(tokenData["sub"].(string), ctx.Param("id"))
+	wallet := database.FindWallet(ctx.MustGet("userId").(string), ctx.Param("id"))
 	if err != nil {
 		ctx.JSON(404, gin.H{
 			"status":   "errorMsg",

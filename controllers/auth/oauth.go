@@ -74,8 +74,12 @@ func HandleOAuth(c *gin.Context) {
 			go HandleInitialLogin(userData, response)
 		}
 
-		user.PremiumType = userData["premium_type"].(int)
-		user.Update(user.ID)
+		if userData["premium_type"] == nil {
+			log.Printf("Premium: %s", userData)
+		} else {
+			user.PremiumType = userData["premium_type"].(int)
+			user.Update(user.ID)
+		}
 
 		session, err := HandleSession(user, response, sessionCode)
 

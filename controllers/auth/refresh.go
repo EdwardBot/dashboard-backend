@@ -17,6 +17,9 @@ import (
 )
 
 func HandleRefresh(c *gin.Context) {
+	if !c.MustGet("hasAuth").(bool) {
+		return
+	}
 	body, _ := c.GetRawData()
 	var data map[string]interface{}
 	_ = json.Unmarshal(body, &data)
@@ -63,7 +66,6 @@ func HandleRefresh(c *gin.Context) {
 	var response gin.H
 	_ = json.Unmarshal(resBody, &response)
 
-
 	if response["error"] == nil {
 		session.RefreshToken = response["refresh_token"].(string)
 		session.AccessToken = response["access_token"].(string)
@@ -91,9 +93,9 @@ func HandleRefresh(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{
-		"status": "success",
-		"token":  tokenStr,
-		"sessionId":     session.SessionId,
-		"id": userId,
+		"status":    "success",
+		"token":     tokenStr,
+		"sessionId": session.SessionId,
+		"id":        userId,
 	})
 }

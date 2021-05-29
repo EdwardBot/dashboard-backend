@@ -8,12 +8,15 @@ import (
 
 var (
 	errorMsg = gin.H{
-		"status": "errorMsg",
+		"status":   "errorMsg",
 		"errorMsg": "Invalid id provided",
 	}
 )
 
-func HandleGuild(c *gin.Context)()  {
+func HandleGuild(c *gin.Context) {
+	if !c.MustGet("hasAuth").(bool) {
+		return
+	}
 	i, e := strconv.ParseInt(c.Param("id"), 10, 64)
 	if e != nil {
 		c.JSON(500, errorMsg)

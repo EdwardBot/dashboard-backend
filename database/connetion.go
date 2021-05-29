@@ -16,12 +16,13 @@ var clientInstanceError error
 var mongoOnce sync.Once
 
 const (
-	DB            = "edward"
-	USERS         = "users"
-	SESSIONS      = "sessions"
-	GUILDS        = "guilds"
-	GUILD_CONFIGS = "guild-configs"
-	WALLETS       = "wallets"
+	DB              = "edward"
+	USERS           = "users"
+	SESSIONS        = "sessions"
+	GUILDS          = "guilds"
+	GUILD_CONFIGS   = "guild-configs"
+	WALLETS         = "wallets"
+	CUSTOM_COMMANDS = "custom-commands"
 )
 
 func Connect() error {
@@ -64,4 +65,8 @@ func GetGuildConfigs() *mongo.Collection {
 
 func GetWalletCollection() *mongo.Collection {
 	return GetInstance().Database(DB).Collection(WALLETS)
+}
+
+func GetCustomCommandsCollection() *mongo.Collection {
+	return GetInstance().Database(DB).Collection(CUSTOM_COMMANDS)
 }

@@ -11,6 +11,7 @@ import (
 )
 
 func HasAuth(c *gin.Context) {
+	c.Set("hasAuth", false)
 	if c.Request.Header.Get("Authorization") == "" {
 		c.JSON(401, gin.H{
 			"status": "error",
@@ -63,5 +64,7 @@ func HasAuth(c *gin.Context) {
 		})
 		return
 	}
-	c.Request.Header.Set("uid", tokenData["sub"].(string))
+	c.Set("hasAuth", true)
+	c.Set("userId", tokenData["sub"].(string))
+	c.Next()
 }

@@ -11,11 +11,12 @@ import (
 )
 
 var (
-	userCollection    *mongo.Collection
-	sessionCollection *mongo.Collection
-	guildCollection   *mongo.Collection
-	gConfCollection   *mongo.Collection
-	walletCollection  *mongo.Collection
+	userCollection           *mongo.Collection
+	sessionCollection        *mongo.Collection
+	guildCollection          *mongo.Collection
+	gConfCollection          *mongo.Collection
+	walletCollection         *mongo.Collection
+	customCommandsCollection *mongo.Collection
 )
 
 func Init() {
@@ -24,6 +25,7 @@ func Init() {
 	guildCollection = GetGuilds()
 	gConfCollection = GetGuildConfigs()
 	walletCollection = GetWalletCollection()
+	customCommandsCollection = GetCustomCommandsCollection()
 }
 
 type User struct {
@@ -79,6 +81,13 @@ type Wallet struct {
 	Messages int32 `bson:"messages"`
 }
 
+type CustomCommand struct {
+	ID       primitive.ObjectID `bson:"_id"`
+	GuildId  string             `bson:"guildId"`
+	Name     string             `bson:"name"`
+	Response string             `bson:"response"`
+}
+
 func FindUser(id int64) (User, error) {
 	var result User
 	err := userCollection.FindOne(context.TODO(), bson.D{
@@ -109,6 +118,32 @@ func FindWallet(userId, guildId string) *Wallet {
 		log.Println(e.Error())
 	}
 	return &wallet
+}
+
+var empty = make([]CustomCommand, 0, 0)
+
+func FindCommands(guildId string) *[]CustomCommand {
+	var cmd = make([]CustomCommand, 0, 0)
+	c, e := customCommandsCollection.Find(context.TODO(), bson.D{
+		primitive.E{
+			Key:   "guildId",
+			Value: guildId,
+		},
+	})
+	if e != nil {
+		return &empty
+	}
+
+	log.Printf("Remaining: %s", c.RemainingBatchLength())
+
+	for c.Next(context.TODO()) {
+		log.Printf("Current: %s", c.Current.String())
+		var tmp CustomCommand
+		c.Decode(&tmp)
+		cmd = append(cmd, tmp)
+	}
+
+	return &cmd
 }
 
 func FindSession(id int32) (Session, error) {
