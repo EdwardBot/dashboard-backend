@@ -50,14 +50,15 @@ type Session struct {
 }
 
 type Guild struct {
-	ID         primitive.ObjectID `bson:"_id"`
-	GuildID    int64              `bson:"guild_id"`
-	GID        string             `bson:"gid"`
-	Name       string             `bson:"name"`
-	Icon       string             `bson:"icon"`
-	HasBot     bool               `bson:"has_bot"`
-	OwnerId    int64              `bson:"owner_id"`
-	HasPremium bool               `bson:"has_premium"`
+	ID          primitive.ObjectID `bson:"_id"`
+	GuildID     int64              `bson:"guild_id"`
+	GID         string             `bson:"gid"`
+	Name        string             `bson:"name"`
+	Icon        string             `bson:"icon"`
+	HasBot      bool               `bson:"has_bot"`
+	OwnerId     int64              `bson:"owner_id"`
+	HasPremium  bool               `bson:"has_premium"`
+	Permissions string
 }
 
 type GuildConfig struct {
@@ -134,10 +135,7 @@ func FindCommands(guildId string) *[]CustomCommand {
 		return &empty
 	}
 
-	log.Printf("Remaining: %s", c.RemainingBatchLength())
-
 	for c.Next(context.TODO()) {
-		log.Printf("Current: %s", c.Current.String())
 		var tmp CustomCommand
 		c.Decode(&tmp)
 		cmd = append(cmd, tmp)
@@ -203,6 +201,53 @@ func FindGConf(id string) (GuildConfig, error) {
 
 func (u *User) Save() error {
 	_, err := userCollection.InsertOne(context.TODO(), *u)
+	return err
+}
+
+func (cc *CustomCommand) Save() error {
+	err := customCommandsCollection.FindOne(context.TODO(), bson.D{
+		bson.E{
+			Key:   "_id",
+			Value: cc.ID,
+		},
+	})
+	if err != nil {
+		_, err := customCommandsCollection.InsertOne(context.TODO(), *cc)
+		return err
+	} else {
+		_, err := customCommandsCollection.UpdateOne(context.TODO(), bson.D{
+			bson.E{
+				Key:   "_id",
+				Value: cc.ID,
+			},
+		}, *cc)
+
+		return err
+	}
+}
+
+func FindCommand(guildId, name string) (*CustomCommand, error) {
+	var res CustomCommand
+	err := customCommandsCollection.FindOne(context.TODO(), bson.D{
+		bson.E{
+			Key:   "guildId",
+			Value: guildId,
+		},
+		bson.E{
+			Key:   "name",
+			Value: name,
+		},
+	}).Decode(&res)
+	return &res, err
+}
+
+func (cc *CustomCommand) Delete() error {
+	_, err := customCommandsCollection.DeleteOne(context.TODO(), bson.D{
+		bson.E{
+			Key:   "_id",
+			Value: cc.ID,
+		},
+	})
 	return err
 }
 

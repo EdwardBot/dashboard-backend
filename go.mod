@@ -3,6 +3,7 @@ module github.com/edward-backend
 go 1.15
 
 require (
+	github.com/bwmarrin/discordgo v0.23.2 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-contrib/multitemplate v0.0.0-20200916052041-666a7309d230 // indirect

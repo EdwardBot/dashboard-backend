@@ -20,9 +20,14 @@ func HandleRefresh(c *gin.Context) {
 	if !c.MustGet("hasAuth").(bool) {
 		return
 	}
-	body, _ := c.GetRawData()
-	var data map[string]interface{}
-	_ = json.Unmarshal(body, &data)
+	data := c.MustGet("body").(map[string]interface{})
+
+	if data == nil {
+		c.JSON(401, gin.H{
+			"status": "error",
+		})
+		return
+	}
 
 	sessionId, _ := strconv.ParseInt(data["id"].(string), 10, 32)
 

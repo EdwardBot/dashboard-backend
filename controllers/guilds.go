@@ -7,10 +7,11 @@ import (
 )
 
 func InitGuilds(r *gin.RouterGroup) {
-	r.Use(auth.HasAuth).GET("/guilds/:id", guild.HandleGuild)
-	r.Use(auth.HasAuth).GET("/guild/:id", guild.HandleGetGuildConfig)
-	r.Use(auth.HasAuth).GET("/guild/:id/user/:uid", guild.HandleGetMember)
-	r.Use(auth.HasAuth).GET("/guild/:id/commands", guild.HandleCommands)
-	r.Use(auth.HasAuth).DELETE("/guild/:id/commands/:name", guild.HandleDeleteCommand)
-	r.Use(auth.HasAuth).POST("/guild/:id/commands/:name", guild.HandleCreateCommand)
+	r.Use(auth.HasAuth)
+	r.GET("/guilds/:id", guild.HandleGuild)
+	r.GET("/guild/:id", guild.HandleGetGuildConfig)
+	r.GET("/guild/:id/user/:uid", guild.HandleGetMember)
+	r.GET("/guild/:id/commands", guild.HandleCommands)
+	r.DELETE("/guild/:id/commands/:name", guild.HandleDeleteCommand)
+	r.POST("/guild/:id/commands/:name", guild.HandleCreateCommand)
 }

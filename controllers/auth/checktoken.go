@@ -17,6 +17,7 @@ func HasAuth(c *gin.Context) {
 			"status": "error",
 			"error":  "No token provided",
 		})
+		return
 	}
 	token := strings.Replace(c.Request.Header.Get("Authorization"), "Bearer ", "", 1)
 	jwtToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {

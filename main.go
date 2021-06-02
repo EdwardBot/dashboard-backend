@@ -1,14 +1,18 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/edward-backend/controllers"
 	"github.com/edward-backend/database"
+	"github.com/edward-backend/utils"
 	"github.com/gin-contrib/multitemplate"
 	"github.com/joho/godotenv"
+	"io"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -53,6 +57,22 @@ func main() {
 		},
 		MaxAge: 12 * time.Hour,
 	}))
+
+	utils.InitDiscord()
+
+	router.Use(func(c *gin.Context) {
+		if !strings.Contains(c.GetHeader("Content-Type"), "application/json") {
+			c.Next()
+		}
+		rawBody, _ := io.ReadAll(c.Request.Body)
+		var body map[string]interface{}
+		err := json.Unmarshal(rawBody, &body)
+		if err != nil {
+			c.Next()
+		}
+		c.Set("body", body)
+		c.Next()
+	})
 
 	r := router.Group("/v1")
 
