@@ -1,7 +1,7 @@
-FROM ubuntu
+FROM golang
 WORKDIR /app
-COPY ./build /app
+COPY . .
+RUN go build .
 ENV PORT=6000
 EXPOSE ${PORT}
-RUN chmod +x /app/start.sh
-CMD ["/bin/sh"]
+CMD ["/app/edward-backend"]

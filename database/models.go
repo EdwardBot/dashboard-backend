@@ -62,12 +62,21 @@ type Guild struct {
 }
 
 type GuildConfig struct {
-	ID           primitive.ObjectID `bson:"_id"`
-	AllowLogging bool               `bson:"allowLogging"`
-	AllowWelcome bool               `bson:"allowWelcome"`
-	BotAdmins    []string           `bson:"botAdmins"`
-	GuildId      string             `bson:"guildId"`
-	JoinedAt     int64              `bson:"joinedAt"`
+	ID             primitive.ObjectID  `bson:"_id"`
+	AllowLogging   bool                `bson:"allowLogging" json:"allow_logging"`
+	AllowWelcome   bool                `bson:"allowWelcome" json:"allow_welcome"`
+	AllowLeave     bool                `bson:"allowLeave" json:"allow_leave"`
+	BotAdmins      []string            `bson:"botAdmins" json:"bot_admins"`
+	GuildId        string              `bson:"guildId" json:"guild_id"`
+	JoinedAt       int64               `bson:"joinedAt" json:"joined_at"`
+	WelcomeChannel TextChannelWithName `bson:"joinChannel" json:"welcome_channel"`
+	LeaveChannel   TextChannelWithName `bson:"leaveChannel" json:"leave_channel"`
+	LogChannel     TextChannelWithName `bson:"logChannel" json:"log_channel"`
+}
+
+type TextChannelWithName struct {
+	ID   string `bson:"id" json:"id"`
+	Name string `json:"name" json:"name"`
 }
 
 type Wallet struct {
