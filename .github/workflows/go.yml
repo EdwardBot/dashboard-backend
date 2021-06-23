@@ -27,7 +27,7 @@ jobs:
       with:
         registry: ${{ secrets.DOCKER_ULR }}
         username: Bendimester23
-        password: ${{ secret.PASSWORD }}
+        password: ${{ secrets.PASSWORD }}
 
     - name: Build
       run: CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
