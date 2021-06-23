@@ -1,7 +1,5 @@
-FROM golang
-WORKDIR /app
-COPY . .
-RUN go build .
+FROM centurylink/ca-certs
+ADD main /
 ENV PORT=6000
 EXPOSE ${PORT}
-CMD ["/app/edward-backend"]
+CMD ["/main"]
