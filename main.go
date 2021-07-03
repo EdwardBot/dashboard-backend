@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/edward-backend/controllers"
 	"github.com/edward-backend/database"
 	"github.com/edward-backend/utils"
@@ -37,10 +36,7 @@ func main() {
 	}
 	s = gocron.NewScheduler(time.UTC)
 	router := gin.Default()
-	err := database.Connect()
-	if err != nil {
-		panic(fmt.Sprintf("Error: %s", err.Error()))
-	}
+	database.Connect()
 
 	database.Init()
 

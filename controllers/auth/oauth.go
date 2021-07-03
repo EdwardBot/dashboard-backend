@@ -190,7 +190,6 @@ func HandleInitialLogin(userData gin.H, response gin.H) {
 	log.Printf("Caching guilds done for user \"%s\"", userData["username"].(string))
 
 	userDb := database.User{
-		ID:            primitive.NewObjectID(),
 		UserID:        userId,
 		JoinedAt:      time.Now(),
 		UserName:      userData["username"].(string),
@@ -199,7 +198,7 @@ func HandleInitialLogin(userData gin.H, response gin.H) {
 		Guilds:        guildIDs,
 	}
 
-	userDb.Save()
+	userDb.Create()
 }
 
 func CacheGuilds(userData, response gin.H) {

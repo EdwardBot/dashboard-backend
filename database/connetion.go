@@ -2,71 +2,38 @@ package database
 
 import (
 	"context"
+	"github.com/jackc/pgconn"
+	"github.com/jackc/pgx/v4"
 	"log"
 	"os"
-	"sync"
-
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var clientInstance *mongo.Client
-var clientInstanceError error
-
-var mongoOnce sync.Once
-
-const (
-	DB              = "edward"
-	USERS           = "users"
-	SESSIONS        = "sessions"
-	GUILDS          = "guilds"
-	GUILD_CONFIGS   = "guild-configs"
-	WALLETS         = "wallets"
-	CUSTOM_COMMANDS = "custom-commands"
+var (
+	Conn *pgx.Conn
 )
 
-func Connect() error {
-	clientOptions := options.Client().ApplyURI(os.Getenv("MONGO_URI") + "/")
-
-	log.Println(clientOptions)
-
-	client, err := mongo.Connect(context.TODO(), clientOptions)
+func Connect() {
+	conn, err := pgx.ConnectConfig(context.Background(), &pgx.ConnConfig{
+		Config: pgconn.Config{
+			Host:           "45.135.56.198",
+			Port:           5432,
+			Database:       "edward",
+			User:           "admin",
+			Password:       os.Getenv("DB_PASS"),
+			ConnectTimeout: 10000,
+			AfterConnect:   nil,
+		},
+	})
 	if err != nil {
-		log.Fatalf("Error connecting to the database!\n%s", err.Error())
+		log.Fatalf("Unable to connect to database: %v\n", err)
 	}
 
-	err = client.Ping(context.TODO(), nil)
-	if err != nil {
-		clientInstanceError = err
-	}
-	clientInstance = client
-	return clientInstanceError
-}
+	Conn = conn
 
-func GetInstance() *mongo.Client {
-	return clientInstance
-}
-
-func GetUsers() *mongo.Collection {
-	return GetInstance().Database(DB).Collection(USERS)
-}
-
-func GetSessions() *mongo.Collection {
-	return GetInstance().Database(DB).Collection(SESSIONS)
-}
-
-func GetGuilds() *mongo.Collection {
-	return GetInstance().Database(DB).Collection(GUILDS)
-}
-
-func GetGuildConfigs() *mongo.Collection {
-	return GetInstance().Database(DB).Collection(GUILD_CONFIGS)
-}
-
-func GetWalletCollection() *mongo.Collection {
-	return GetInstance().Database(DB).Collection(WALLETS)
-}
-
-func GetCustomCommandsCollection() *mongo.Collection {
-	return GetInstance().Database(DB).Collection(CUSTOM_COMMANDS)
+	defer func(conn *pgx.Conn, ctx context.Context) {
+		err := conn.Close(ctx)
+		if err != nil {
+			log.Println(err)
+		}
+	}(conn, context.Background())
 }
