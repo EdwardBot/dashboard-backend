@@ -14,4 +14,5 @@ func InitGuilds(r *gin.RouterGroup) {
 	r.GET("/guild/:id/commands", guild.HandleCommands)
 	r.DELETE("/guild/:id/commands/:name", guild.HandleDeleteCommand)
 	r.POST("/guild/:id/commands/:name", guild.HandleCreateCommand)
+	r.GET("/guild/:id/kicks", guild.HandleKicks)
 }

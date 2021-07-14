@@ -1,39 +1,28 @@
 package database
 
 import (
-	"context"
-	"github.com/jackc/pgconn"
-	"github.com/jackc/pgx/v4"
+	"fmt"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 	"log"
 	"os"
 )
 
 var (
-	Conn *pgx.Conn
+	Conn *gorm.DB
 )
 
 func Connect() {
-	conn, err := pgx.ConnectConfig(context.Background(), &pgx.ConnConfig{
-		Config: pgconn.Config{
-			Host:           "45.135.56.198",
-			Port:           5432,
-			Database:       "edward",
-			User:           "admin",
-			Password:       os.Getenv("DB_PASS"),
-			ConnectTimeout: 10000,
-			AfterConnect:   nil,
-		},
-	})
+	dsn := fmt.Sprintf("host=45.135.56.198 user=admin password=%s dbname=edward port=5432", os.Getenv("DB_PASS"))
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("Unable to connect to database: %v\n", err)
 	}
 
-	Conn = conn
+	Conn = db
 
-	defer func(conn *pgx.Conn, ctx context.Context) {
-		err := conn.Close(ctx)
-		if err != nil {
-			log.Println(err)
-		}
-	}(conn, context.Background())
+	err = db.AutoMigrate(&User{}, &Session{}, &Guild{}, &Permissions{})
+	if err != nil {
+		log.Println(err.Error())
+	}
 }

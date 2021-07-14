@@ -25,20 +25,16 @@ var (
 
 func createMyRender() multitemplate.Renderer {
 	r := multitemplate.NewRenderer()
-	r.AddFromFiles("redirect", "templates/oauth.html")
+	r.AddFromString("redirect", "<html>\n<head>\n    <title>Átirányítás...</title>\n</head>\n<body>\n<p id=\"d\" style=\"display: none\">d{{.data}}</p>\n<script>\n    window.opener.postMessage(document.getElementById(\"d\").innerText, \"*\");\n    setTimeout(() => {\n        window.close()\n    }, 500)\n</script>\n</body>\n</html>")
 	return r
 }
 
 func main() {
 	log.Println(`Starting...`)
-	if os.Getenv("PROD") == "" {
-		godotenv.Load()
-	}
+	godotenv.Load()
 	s = gocron.NewScheduler(time.UTC)
 	router := gin.Default()
 	database.Connect()
-
-	database.Init()
 
 	router.HTMLRender = createMyRender()
 
