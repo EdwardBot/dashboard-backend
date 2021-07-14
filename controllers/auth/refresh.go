@@ -2,10 +2,12 @@ package auth
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/edward-backend/database"
 	"github.com/edward-backend/utils"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -31,8 +33,9 @@ func HandleRefresh(c *gin.Context) {
 
 	sessionId, _ := strconv.ParseInt(data["id"].(string), 10, 32)
 
-	session, err := database.FindSession(int32(sessionId))
-	if err != nil {
+	var session database.Session
+	r := database.Conn.First(&session, sessionId)
+	if errors.Is(r.Error, gorm.ErrRecordNotFound) {
 		c.JSON(401, gin.H{
 			"status": "error",
 			"error":  "Invalid session",
@@ -74,8 +77,8 @@ func HandleRefresh(c *gin.Context) {
 	if response["error"] == nil {
 		session.RefreshToken = response["refresh_token"].(string)
 		session.AccessToken = response["access_token"].(string)
-		session.RefreshedAt = time.Now()
-		session.Update(session.ID)
+		session.RefreshedAt = time.Now().Unix()
+		database.Conn.Save(&session)
 	}
 
 	token := jwt.New(jwt.GetSigningMethod("HS256"))
@@ -85,7 +88,7 @@ func HandleRefresh(c *gin.Context) {
 	token.Claims = jwt.StandardClaims{
 		ExpiresAt: time.Now().Add(time.Second * 603000).Unix(),
 		Subject:   userId,
-		Id:        strconv.Itoa(int(session.SessionId)),
+		Id:        strconv.Itoa(int(session.ID)),
 	}
 
 	tokenStr, err := token.SignedString([]byte(os.Getenv("TOKEN_SECRET")))
@@ -100,7 +103,7 @@ func HandleRefresh(c *gin.Context) {
 	c.JSON(200, gin.H{
 		"status":    "success",
 		"token":     tokenStr,
-		"sessionId": session.SessionId,
+		"sessionId": session.ID,
 		"id":        userId,
 	})
 }

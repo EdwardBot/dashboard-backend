@@ -1,10 +1,10 @@
 package guild
 
 import (
-	"github.com/bwmarrin/discordgo"
+	"errors"
 	"github.com/edward-backend/database"
-	"github.com/edward-backend/utils"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 	"strconv"
 )
 
@@ -25,33 +25,19 @@ func HandleGuild(c *gin.Context) {
 		c.JSON(500, errorMsg)
 		return
 	}
-	g, _ := database.FindGuilds(i)
-	client := utils.GetDiscordInstance()
-	//Loop through the users guilds
-	for i := range g {
-		guild := g[i]
-		member, _ := client.GuildMember(guild.GID, c.Param("id"))
-		//Get all the roles
-		gRoles, _ := client.GuildRoles(guild.GID)
-		//Check his roles
-		var tmpPerm int64 = 0
-		for r := range member.Roles {
-			roleId := member.Roles[r]
-			//Check if it is in the cache
-			if roles[roleId] != nil {
-				tmpPerm |= (roles[roleId]).(gin.H)["role"].(*discordgo.Role).Permissions
-			} else {
-				role := utils.Find(gRoles, func(e *discordgo.Role) bool {
-					return e.ID == roleId
-				})
-				roles[roleId] = gin.H{
-					"role": role,
-				}
-				tmpPerm |= role.Permissions
-			}
-		}
-		guild.Permissions = strconv.FormatInt(tmpPerm, 2)
-		g[i] = guild
+	var user database.User
+	r := database.Conn.First(&user, i)
+	if errors.Is(r.Error, gorm.ErrRecordNotFound) {
+		c.JSON(404, errorMsg)
+		return
 	}
-	c.JSON(200, g)
+
+	var guilds []database.Guild
+	database.Conn.Model(&database.Guild{}).Where("gid = any(?::bigint[])", user.Guilds).Find(&guilds)
+
+	for g := range guilds {
+		guilds[g].ID = strconv.FormatInt(int64(guilds[g].GuildID), 10)
+	}
+
+	c.JSON(200, guilds)
 }

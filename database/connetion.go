@@ -1,72 +1,28 @@
 package database
 
 import (
-	"context"
+	"fmt"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 	"log"
 	"os"
-	"sync"
-
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var clientInstance *mongo.Client
-var clientInstanceError error
-
-var mongoOnce sync.Once
-
-const (
-	DB              = "edward"
-	USERS           = "users"
-	SESSIONS        = "sessions"
-	GUILDS          = "guilds"
-	GUILD_CONFIGS   = "guild-configs"
-	WALLETS         = "wallets"
-	CUSTOM_COMMANDS = "custom-commands"
+var (
+	Conn *gorm.DB
 )
 
-func Connect() error {
-	clientOptions := options.Client().ApplyURI(os.Getenv("MONGO_URI") + "/")
-
-	log.Println(clientOptions)
-
-	client, err := mongo.Connect(context.TODO(), clientOptions)
+func Connect() {
+	dsn := fmt.Sprintf("host=45.135.56.198 user=admin password=%s dbname=edward port=5432", os.Getenv("DB_PASS"))
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("Error connecting to the database!\n%s", err.Error())
+		log.Fatalf("Unable to connect to database: %v\n", err)
 	}
 
-	err = client.Ping(context.TODO(), nil)
+	Conn = db
+
+	err = db.AutoMigrate(&User{}, &Session{}, &Guild{}, &Permissions{})
 	if err != nil {
-		clientInstanceError = err
+		log.Println(err.Error())
 	}
-	clientInstance = client
-	return clientInstanceError
-}
-
-func GetInstance() *mongo.Client {
-	return clientInstance
-}
-
-func GetUsers() *mongo.Collection {
-	return GetInstance().Database(DB).Collection(USERS)
-}
-
-func GetSessions() *mongo.Collection {
-	return GetInstance().Database(DB).Collection(SESSIONS)
-}
-
-func GetGuilds() *mongo.Collection {
-	return GetInstance().Database(DB).Collection(GUILDS)
-}
-
-func GetGuildConfigs() *mongo.Collection {
-	return GetInstance().Database(DB).Collection(GUILD_CONFIGS)
-}
-
-func GetWalletCollection() *mongo.Collection {
-	return GetInstance().Database(DB).Collection(WALLETS)
-}
-
-func GetCustomCommandsCollection() *mongo.Collection {
-	return GetInstance().Database(DB).Collection(CUSTOM_COMMANDS)
 }

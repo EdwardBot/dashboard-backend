@@ -1,9 +1,11 @@
 package auth
 
 import (
+	"errors"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/edward-backend/database"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 	"os"
 	"strconv"
 	"strings"
@@ -49,8 +51,9 @@ func HasAuth(c *gin.Context) {
 		return
 	}
 	sessionId, _ := strconv.ParseInt(tokenData["jti"].(string), 10, 32)
-	session, err := database.FindSession(int32(sessionId))
-	if err != nil {
+	var session database.Session
+	r := database.Conn.First(&session, sessionId)
+	if errors.Is(r.Error, gorm.ErrRecordNotFound) {
 		c.JSON(401, gin.H{
 			"status": "error",
 			"error":  "Invalid session",
